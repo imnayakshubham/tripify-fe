@@ -1,0 +1,156 @@
+import { ChevronDown, FileText } from 'lucide-react'
+
+import { AgentTrail } from '@/components/AgentTrail'
+import { BudgetPanel } from '@/components/BudgetPanel'
+import { ConstraintsPanel } from '@/components/ConstraintsPanel'
+import { DestinationPanel } from '@/components/DestinationPanel'
+import { ItineraryTimeline } from '@/components/ItineraryTimeline'
+import { Markdown } from '@/components/Markdown'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { TripHero } from '@/components/TripHero'
+import { agentDisplayName, formatDuration } from '@/lib/agents'
+import type { PipelineStep } from '@/hooks/usePlanStream'
+import type { PlanResponse } from '@/types/api'
+
+/** Cost and per-agent timing. The API only populates these for admins. */
+function AdminPlanDetail({ plan }: { plan: PlanResponse }) {
+  if (plan.agent_details === null) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">Cost and timing (admin)</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          {plan.llm_calls} LLM calls · {plan.input_tokens} input tokens ·{' '}
+          {plan.output_tokens} output tokens
+        </p>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Agent</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Duration</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {plan.agent_details.map((detail) => (
+              <TableRow key={detail.agent_name}>
+                <TableCell>{agentDisplayName(detail.agent_name)}</TableCell>
+                <TableCell>
+                  <Badge variant={detail.status === 'failed' ? 'destructive' : 'secondary'}>
+                    {detail.status}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {formatDuration(detail.duration_ms)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  )
+}
+
+/** The three markdown blobs, kept for transparency and as the parse fallback. */
+function RawAgentOutput({ plan }: { plan: PlanResponse }) {
+  const sections = [
+    { label: 'Destination', body: plan.destination_results },
+    { label: 'Itinerary', body: plan.itinerary },
+    { label: 'Budget', body: plan.budget_results },
+  ].filter((section) => section.body)
+
+  if (sections.length === 0) return null
+
+  return (
+    <Accordion type="single" collapsible className="rounded-lg border px-4">
+      {sections.map((section) => (
+        <AccordionItem key={section.label} value={section.label}>
+          <AccordionTrigger className="text-sm">
+            Raw output — {section.label} agent
+          </AccordionTrigger>
+          <AccordionContent>
+            <Markdown>{section.body}</Markdown>
+          </AccordionContent>
+        </AccordionItem>
+      ))}
+    </Accordion>
+  )
+}
+
+export function PlanResult({
+  plan,
+  steps,
+}: {
+  plan: PlanResponse
+  steps?: PipelineStep[]
+}) {
+  return (
+    <div className="space-y-6">
+      <TripHero plan={plan} />
+
+      <AgentTrail
+        agents={plan.contributing_agents}
+        steps={steps}
+        reasoning={plan.supervisor_reasoning}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+        {/* Context for the decision: what we understood, where, and what it costs. */}
+        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+          <ConstraintsPanel constraints={plan.trip_constraints ?? {}} />
+          <DestinationPanel plan={plan} />
+          <BudgetPanel plan={plan} />
+        </aside>
+
+        <div className="min-w-0">
+          <Card>
+            <CardContent className="pt-6">
+              <ItineraryTimeline plan={plan} />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {plan.answer && (
+        <Collapsible>
+          <CollapsibleTrigger className="group flex w-full items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium hover:bg-muted/50">
+            <FileText className="size-4 text-muted-foreground" />
+            Full write-up
+            <ChevronDown className="ml-auto size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="px-4 py-4">
+            <Markdown>{plan.answer}</Markdown>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      <RawAgentOutput plan={plan} />
+      <AdminPlanDetail plan={plan} />
+    </div>
+  )
+}
