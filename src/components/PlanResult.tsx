@@ -12,69 +12,16 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+
 import { TripHero } from '@/components/TripHero'
-import { agentDisplayName, formatDuration } from '@/lib/agents'
 import type { PipelineStep } from '@/hooks/usePlanStream'
 import type { PlanResponse } from '@/types/api'
-
-/** Cost and per-agent timing. The API only populates these for admins. */
-function AdminPlanDetail({ plan }: { plan: PlanResponse }) {
-  if (plan.agent_details === null) return null
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Cost and timing (admin)</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          {plan.llm_calls} LLM calls · {plan.input_tokens} input tokens ·{' '}
-          {plan.output_tokens} output tokens
-        </p>
-
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Agent</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Duration</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {plan.agent_details.map((detail) => (
-              <TableRow key={detail.agent_name}>
-                <TableCell>{agentDisplayName(detail.agent_name)}</TableCell>
-                <TableCell>
-                  <Badge variant={detail.status === 'failed' ? 'destructive' : 'secondary'}>
-                    {detail.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatDuration(detail.duration_ms)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  )
-}
 
 /** The three markdown blobs, kept for transparency and as the parse fallback. */
 function RawAgentOutput({ plan }: { plan: PlanResponse }) {
@@ -102,11 +49,6 @@ function RawAgentOutput({ plan }: { plan: PlanResponse }) {
   )
 }
 
-/**
- * Whether there is a trip to draw at all. False when the supervisor answered directly
- * (not a travel request) or every specialist failed — in both cases a "Your trip" hero
- * would be inventing one.
- */
 function hasTripContent(plan: PlanResponse): boolean {
   const constraints = plan.trip_constraints ?? {}
 
