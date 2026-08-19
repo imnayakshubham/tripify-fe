@@ -1,14 +1,4 @@
-/**
- * Caller identity — a stub, mirroring backend/app/api/deps.py.
- *
- * Identity is asserted by the `X-User-Email` header and believed. There is no
- * `/me` endpoint, so the server never tells us who we are — email and role are
- * held here on the client and sent on every request.
- *
- * `X-User-Role` is sent deliberately: deps.py -> audit.upsert_user writes that
- * role onto the user row, so sending it keeps the client's idea of the role and
- * the server's in agreement instead of letting them drift.
- */
+
 
 export type Role = 'user' | 'admin'
 
@@ -39,8 +29,7 @@ function readStored(): Identity {
   }
 }
 
-// Module-level so the axios interceptor and the stream client can both read the
-// current identity without threading it through every call site.
+// Module-level so the axios interceptor and the stream client read the same value.
 let current: Identity = readStored()
 
 export function getIdentity(): Identity {
@@ -52,7 +41,7 @@ export function setIdentity(next: Identity): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   } catch {
-    // A private-mode storage failure should not break the app.
+    // Private mode: storage is unavailable, in-memory identity still works.
   }
 }
 

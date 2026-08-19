@@ -164,10 +164,7 @@ export interface AuditRequestSummary {
   created_at: string
 }
 
-// `AuditRequestDetail` / `AuditInvocation` are deliberately not mirrored here.
-// They belong to GET /plans/{id}, which this app never calls — that endpoint
-// returns the audit record rather than the plan text, so there is nothing to
-// render. See the note in HistoryTab.
+// GET /plans/{id}/result, which returns a PlanResponse.
 
 export interface InvocationLogEntry {
   request_id: string

@@ -76,11 +76,6 @@ client.interceptors.response.use(
   (error: AxiosError) => Promise.reject(describe(error)),
 )
 
-export async function getHealth(): Promise<{ status: string }> {
-  const { data } = await client.get<{ status: string }>('/health')
-  return data
-}
-
 /** Non-admins are scoped to their own rows by the API's SQL, not by us. */
 export async function listAuditRequests(limit = 25): Promise<AuditRequestSummary[]> {
   const { data } = await client.get<AuditRequestSummary[]>('/audit/requests', {
