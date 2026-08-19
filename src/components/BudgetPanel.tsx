@@ -100,7 +100,7 @@ function Alternative({
         </ul>
       )}
 
-      {/* The brief asks for an alternative; this says whether it actually works. */}
+      {/* Whether the alternative actually closes the gap. */}
       {closesGap === true && resulting !== undefined && (
         <p className="flex items-center gap-1.5 border-t border-warning/20 pt-2 text-xs font-medium text-success">
           <Check className="size-3.5" />
@@ -130,8 +130,7 @@ export function BudgetPanel({ plan }: { plan: PlanResponse }) {
   const assessment = plan.budget_assessment
   const statedBudget = plan.trip_constraints?.budget_amount
 
-  // A budget was stated but no check exists. Silence here was the bug: the
-  // panel used to render nothing at all.
+  // A budget was stated but no check exists — say so rather than render nothing.
   if (!assessment && !plan.budget_results) {
     if (statedBudget === null || statedBudget === undefined) return null
     return (

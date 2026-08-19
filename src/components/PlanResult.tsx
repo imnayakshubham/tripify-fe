@@ -102,6 +102,26 @@ function RawAgentOutput({ plan }: { plan: PlanResponse }) {
   )
 }
 
+/**
+ * Whether there is a trip to draw at all. False when the supervisor answered directly
+ * (not a travel request) or every specialist failed — in both cases a "Your trip" hero
+ * would be inventing one.
+ */
+function hasTripContent(plan: PlanResponse): boolean {
+  const constraints = plan.trip_constraints ?? {}
+
+  return Boolean(
+    plan.destination_choice ||
+      plan.itinerary_plan ||
+      plan.budget_assessment ||
+      plan.destination_results ||
+      plan.itinerary ||
+      plan.budget_results ||
+      constraints.destination ||
+      typeof constraints.duration_days === 'number',
+  )
+}
+
 export function PlanResult({
   plan,
   steps,
@@ -109,6 +129,28 @@ export function PlanResult({
   plan: PlanResponse
   steps?: PipelineStep[]
 }) {
+  if (!hasTripContent(plan)) {
+    return (
+      <div className="space-y-6">
+        {plan.answer && (
+          <Card>
+            <CardContent className="pt-6">
+              <Markdown>{plan.answer}</Markdown>
+            </CardContent>
+          </Card>
+        )}
+
+        <AgentTrail
+          agents={plan.contributing_agents}
+          steps={steps}
+          reasoning={plan.supervisor_reasoning}
+        />
+      </div>
+    )
+  }
+
+  const hasItinerary = Boolean(plan.itinerary_plan?.days?.length || plan.itinerary)
+
   return (
     <div className="space-y-6">
       <TripHero plan={plan} />
@@ -119,21 +161,27 @@ export function PlanResult({
         reasoning={plan.supervisor_reasoning}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+      {/* @3xl is 48rem of the well PlanView measures, not of the viewport — a
+          viewport breakpoint can't see the sidebar collapsing. */}
+      <div className="grid gap-4 @3xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] @3xl:gap-6">
         {/* Context for the decision: what we understood, where, and what it costs. */}
-        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+        <aside className="space-y-4 @3xl:sticky @3xl:top-6 @3xl:self-start">
           <ConstraintsPanel constraints={plan.trip_constraints ?? {}} />
           <DestinationPanel plan={plan} />
           <BudgetPanel plan={plan} />
         </aside>
 
-        <div className="min-w-0">
-          <Card>
-            <CardContent className="pt-6">
-              <ItineraryTimeline plan={plan} />
-            </CardContent>
-          </Card>
-        </div>
+        {/* Gated: ItineraryTimeline returns null with no days, and an ungated Card
+            leaves an empty bordered box behind. */}
+        {hasItinerary && (
+          <div className="min-w-0">
+            <Card>
+              <CardContent className="pt-6">
+                <ItineraryTimeline plan={plan} />
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       {plan.answer && (

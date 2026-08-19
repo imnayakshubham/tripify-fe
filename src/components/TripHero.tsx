@@ -33,7 +33,7 @@ function Chip({
  * The one-glance answer: where, how long, what it costs, and whether that fits.
  *
  * The banner is a gradient seeded from the destination name rather than a photo
- * — no network request, and it can never show the wrong city.
+ * — no network request, and it cannot show the wrong city.
  */
 export function TripHero({ plan }: { plan: PlanResponse }) {
   const constraints = plan.trip_constraints ?? {}
@@ -63,7 +63,7 @@ export function TripHero({ plan }: { plan: PlanResponse }) {
           Recommended trip
         </div>
 
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+        <h2 className="mt-2 text-xl font-semibold tracking-tight text-white sm:text-2xl md:text-3xl">
           {destination}
         </h2>
 

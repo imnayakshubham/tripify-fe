@@ -9,7 +9,7 @@ export interface Identity {
 
 const STORAGE_KEY = 'trip-planner.identity'
 
-export const DEFAULT_IDENTITY: Identity = {
+const DEFAULT_IDENTITY: Identity = {
   email: 'demo@example.com',
   role: 'user',
 }

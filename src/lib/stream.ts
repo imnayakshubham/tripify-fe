@@ -1,29 +1,22 @@
 /**
  * The streaming half of the API client — POST /plans/stream.
  *
- * EventSource is GET-only and cannot set headers, which would force the
- * identity stub into the query string for this one route. fetchEventSource does
- * POST with headers, so the stream carries exactly the same identity as every
- * axios call.
+ * EventSource is GET-only and cannot set headers, which would force the identity
+ * stub into the query string for this one route. fetchEventSource does POST with
+ * headers, so the stream carries the same identity as every axios call.
  */
 
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 
-import { API_BASE_URL, ApiError } from '@/lib/api'
+import { ApiError, UNREACHABLE, detailMessage, API_BASE_URL } from '@/lib/api'
 import { getIdentity, identityHeaders } from '@/lib/identity'
-import type {
-  AgentEvent,
-  CreatePlanRequest,
-  PlanResponse,
-  RoutedEvent,
-  StartEvent,
-} from '@/types/api'
+import type { AgentEvent, CreatePlanRequest, PlanResponse, RoutedEvent } from '@/types/api'
 
 /** Thrown to stop fetchEventSource retrying — it retries forever otherwise. */
 class FatalStreamError extends Error {}
 
 export interface PlanStreamHandlers {
-  onStart: (event: StartEvent) => void
+  onStart: () => void
   onRouted: (event: RoutedEvent) => void
   onAgent: (event: AgentEvent) => void
   onDone: (plan: PlanResponse) => void
@@ -32,31 +25,21 @@ export interface PlanStreamHandlers {
 /** Read {detail} off a non-200 so a 403 reads as a message, not "stream failed". */
 async function describeResponse(response: Response): Promise<string> {
   try {
-    const body = (await response.json()) as { detail?: unknown }
-    if (typeof body.detail === 'string') return body.detail
-    if (Array.isArray(body.detail)) {
-      const messages = body.detail
-        .map((item) => (item as { msg?: string }).msg)
-        .filter(Boolean)
-      if (messages.length > 0) return messages.join('; ')
-    }
+    return detailMessage(await response.json(), response.status)
   } catch {
-    // Fall through to the generic message.
+    return `The API returned ${response.status}.`
   }
-  return `The API returned ${response.status}.`
 }
 
 /**
- * Runs a plan, invoking `handlers` as each agent lands. Resolves when the
- * server closes the stream; rejects with an ApiError on failure.
- *
- * Abort via `signal`; that resolves rather than rejecting, since a user
- * cancelling is not an error.
+ * Runs a plan, invoking `handlers` as each agent lands. Aborting via `signal`
+ * resolves rather than rejecting — a user cancelling is not an error.
  */
 export async function streamPlan(
   userQuery: string,
   handlers: PlanStreamHandlers,
   signal: AbortSignal,
+  planId?: string,
 ): Promise<void> {
   let sawDone = false
 
@@ -68,7 +51,7 @@ export async function streamPlan(
         Accept: 'text/event-stream',
         ...identityHeaders(getIdentity()),
       },
-      body: JSON.stringify({ user_query: userQuery } satisfies CreatePlanRequest),
+      body: JSON.stringify({ user_query: userQuery, plan_id: planId } satisfies CreatePlanRequest),
       signal,
 
       // Without this the stream is torn down whenever the tab is hidden, which
@@ -84,7 +67,7 @@ export async function streamPlan(
       onmessage(message) {
         switch (message.event) {
           case 'start':
-            handlers.onStart(JSON.parse(message.data) as StartEvent)
+            handlers.onStart()
             break
           case 'routed':
             handlers.onRouted(JSON.parse(message.data) as RoutedEvent)
@@ -123,8 +106,6 @@ export async function streamPlan(
     if (error instanceof FatalStreamError) {
       throw new ApiError(error.message)
     }
-    throw new ApiError(
-      `Could not reach the API at ${API_BASE_URL}. Is the backend running?`,
-    )
+    throw new ApiError(UNREACHABLE)
   }
 }

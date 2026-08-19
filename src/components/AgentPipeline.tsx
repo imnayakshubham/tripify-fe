@@ -12,11 +12,8 @@ const ICONS = {
 }
 
 /**
- * Live agent activity, driven by the SSE stream.
- *
- * Every step here is real: the chain comes from the supervisor's own
- * `selected_agents`, and a step only settles when the backend says that node
- * finished. Nothing is simulated on a timer.
+ * Live agent activity from the SSE stream. The chain comes from the supervisor's
+ * own `selected_agents`, and a step settles only when the backend says so.
  */
 export function AgentPipeline({
   steps,

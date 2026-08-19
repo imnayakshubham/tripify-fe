@@ -20,7 +20,7 @@ function Segment({ segment, last }: { segment: ItinerarySegment; last: boolean }
   const style = CATEGORY_STYLE[normaliseCategory(segment.category)]
 
   return (
-    <li className="relative flex gap-4 pb-5 last:pb-0">
+    <li className="relative flex gap-3 pb-5 last:pb-0 sm:gap-4">
       {/* Rail: a dot on the line, coloured by category. */}
       {!last && <span className="absolute top-4 left-[5px] h-full w-px bg-border" />}
       <span className={cn('mt-1.5 size-2.5 shrink-0 rounded-full ring-4 ring-background', style.dot)} />
@@ -43,7 +43,7 @@ function Segment({ segment, last }: { segment: ItinerarySegment; last: boolean }
 
         <p className="text-sm leading-relaxed">{segment.activity}</p>
 
-        {/* The brief's "must say so when uncertain" rule, made visible. */}
+        {/* Surfaced next to the activity rather than buried in a paragraph. */}
         {segment.uncertainty && (
           <p className="flex gap-1.5 rounded-md bg-warning/10 px-2 py-1.5 text-xs text-muted-foreground">
             <TriangleAlert className="mt-0.5 size-3 shrink-0 text-warning" />
@@ -60,16 +60,18 @@ function Day({ day }: { day: ItineraryDay }) {
 
   return (
     <section className="space-y-3">
-      <header className="flex items-baseline gap-3">
+      {/* The title wraps to its own line on a phone rather than truncating to
+          nothing between the day number and the stop count. */}
+      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
         <h4 className="text-sm font-semibold">Day {day.day ?? '?'}</h4>
+        <span className="ml-auto shrink-0 text-xs text-muted-foreground sm:order-last sm:ml-0">
+          {segments.length} {segments.length === 1 ? 'stop' : 'stops'}
+        </span>
         {day.title && (
-          <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+          <span className="w-full text-sm text-muted-foreground sm:order-2 sm:w-auto sm:min-w-0 sm:flex-1 sm:truncate">
             {day.title}
           </span>
         )}
-        <span className="shrink-0 text-xs text-muted-foreground">
-          {segments.length} {segments.length === 1 ? 'stop' : 'stops'}
-        </span>
       </header>
 
       <ol className="pl-1">

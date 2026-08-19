@@ -1,11 +1,9 @@
 /**
- * Helpers for reading unvalidated model output.
+ * Helpers for reading unvalidated model output — any field may be missing, or be a
+ * string where a number was asked for.
  *
- * Everything here assumes a field may be missing, or may be a string where a
- * number was asked for. `toNumber` mirrors `to_number()` in
- * backend/app/agents/base.py and the two must stay in step: when this parsed a
- * figure the server could not, the client reached a different verdict from the
- * server on identical data and rendered a green tick over an overage.
+ * `toNumber` mirrors `to_number()` in backend/app/agents/base.py; the two must stay
+ * in step or client and server reach different verdicts on identical data.
  */
 
 import {
@@ -69,10 +67,7 @@ export function normaliseCategory(value: unknown): ActivityCategory {
     : 'other'
 }
 
-/**
- * Category to colour + icon. `text`/`bg` reference the tokens defined in
- * index.css, so light and dark are handled by the theme rather than here.
- */
+/** `text`/`bg` reference tokens in index.css, so the theme handles light and dark. */
 export const CATEGORY_STYLE: Record<
   ActivityCategory,
   { label: string; icon: LucideIcon; text: string; bg: string; dot: string }
@@ -157,11 +152,13 @@ export function summariseBudget(assessment: BudgetAssessment): BudgetSummary {
   const budget = toNumber(assessment.budget_amount)
   const difference = total !== null && budget !== null ? budget - total : null
 
-  // Derive the verdict from the numbers whenever we have them. Deferring to the
-  // flag was how a green tick ended up rendered above two numbers that plainly
-  // contradicted it. The flag is only consulted when there is nothing to compare.
+  // An explicit null means the server could not verify (e.g. the estimate and the
+  // budget are in different currencies) — something the raw numbers cannot reveal.
+  // Otherwise prefer the numbers: a contradicting flag must not outrank them.
   let verdict: BudgetVerdict
-  if (difference !== null) {
+  if (assessment.within_budget === null && assessment.unverified_reason) {
+    verdict = 'unverified'
+  } else if (difference !== null) {
     verdict = difference >= 0 ? 'within' : 'over'
   } else if (assessment.within_budget === true) {
     verdict = 'within'
@@ -192,11 +189,7 @@ export function summariseBudget(assessment: BudgetAssessment): BudgetSummary {
 
 // ------------------------------------------------------------------- hero
 
-/**
- * A stable hue from the destination name, so the same trip always gets the same
- * banner. Cheap alternative to fetching a photo — it can't 404 and it can't show
- * a picture of the wrong city.
- */
+/** A stable hue from the destination name, so the same trip always gets the same banner. */
 export function hueFromText(text: string): number {
   let hash = 0
   for (let index = 0; index < text.length; index += 1) {

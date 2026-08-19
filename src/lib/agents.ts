@@ -1,6 +1,6 @@
 // The suffix is the only signal an agent failed — a partially-failed chain still
 // returns HTTP 200. Written by @audited in backend/app/agents/base.py.
-const FAILED_SUFFIX = ' (failed)'
+export const FAILED_SUFFIX = ' (failed)'
 
 export function isFailedAgent(label: string): boolean {
   return label.endsWith(FAILED_SUFFIX)

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertCircle, ArrowUp, Compass, Square } from 'lucide-react'
+import { AlertCircle, ArrowUp, Compass, MessageSquarePlus, Square } from 'lucide-react'
 
 import { AgentPipeline } from '@/components/AgentPipeline'
 import { PlanResult } from '@/components/PlanResult'
@@ -35,7 +35,9 @@ function useElapsed(running: boolean): number {
 
 function EmptyState({ onPick }: { onPick: (text: string) => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-6 px-6 text-center">
+    // svh, not dvh: the block must not re-centre itself while the on-screen
+    // keyboard is opening.
+    <div className="flex min-h-[60svh] flex-col items-center justify-center gap-6 text-center">
       <div className="space-y-2">
         <Compass className="mx-auto size-8 text-muted-foreground" />
         <h2 className="text-xl font-semibold tracking-tight">Where do you want to go?</h2>
@@ -47,7 +49,7 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
             key={example}
             type="button"
             onClick={() => onPick(example)}
-            className="rounded-xl border px-4 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded-xl border px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             {example}
           </button>
@@ -62,11 +64,13 @@ export function PlanView({
   openedPlan,
   openedLoading,
   openedError,
+  onNewTrip,
 }: {
   stream: PlanStream
   openedPlan: PlanResponse | null
   openedLoading: boolean
   openedError: string | null
+  onNewTrip: () => void
 }) {
   const [query, setQuery] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -86,14 +90,19 @@ export function PlanView({
 
   function run(text: string) {
     if (!text.trim() || running) return
-    void submit(text.trim())
+    // Continue the plan on screen so a follow-up refines it; "new trip" clears
+    // `shown`, which is what starts a fresh thread.
+    void submit(text.trim(), shown?.plan_id)
     setQuery('')
   }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto h-full max-w-4xl px-6 py-6">
+        {/* @container so PlanResult splits on the width of the well it actually
+            has, which also changes when the sidebar collapses — something no
+            viewport breakpoint can see. */}
+        <div className="mx-auto @container max-w-4xl px-4 py-4 sm:px-6 sm:py-6">
           {idle && <EmptyState onPick={run} />}
 
           {openedLoading && (
@@ -106,7 +115,7 @@ export function PlanView({
           {openedError && (
             <Alert variant="destructive">
               <AlertCircle />
-              <AlertTitle>Could not open that trip</AlertTitle>
+              <AlertTitle>Something Went Wrong</AlertTitle>
               <AlertDescription>{openedError}</AlertDescription>
             </Alert>
           )}
@@ -127,9 +136,23 @@ export function PlanView({
         </div>
       </div>
 
-      <div className="border-t bg-background">
+      {/* pb clears the iPhone home indicator; relative anchors the FAB to the
+          top edge of the composer whatever height the textarea has grown to. */}
+      <div className="relative border-t bg-background pb-[env(safe-area-inset-bottom)]">
+        {!idle && (
+          <Button
+            type="button"
+            size="icon-lg"
+            onClick={onNewTrip}
+            className="absolute right-4 bottom-full mb-3 rounded-full shadow-lg md:hidden"
+          >
+            <MessageSquarePlus />
+            <span className="sr-only">New trip</span>
+          </Button>
+        )}
+
         <form
-          className="mx-auto max-w-4xl px-6 py-4"
+          className="mx-auto max-w-4xl px-4 py-3 sm:px-6 sm:py-4"
           onSubmit={(event) => {
             event.preventDefault()
             run(query)
@@ -152,14 +175,27 @@ export function PlanView({
               }}
             />
 
+            {/* size-9 on mobile: icon-sm is 28px, well under a 44px target, and
+                this is the most-used control on a phone. */}
             <div className="absolute right-2 bottom-2">
               {running ? (
-                <Button type="button" size="icon-sm" variant="secondary" onClick={cancel}>
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="secondary"
+                  onClick={cancel}
+                  className="size-9 sm:size-7"
+                >
                   <Square />
                   <span className="sr-only">Stop</span>
                 </Button>
               ) : (
-                <Button type="submit" size="icon-sm" disabled={!query.trim()}>
+                <Button
+                  type="submit"
+                  size="icon-sm"
+                  disabled={!query.trim()}
+                  className="size-9 sm:size-7"
+                >
                   <ArrowUp />
                   <span className="sr-only">Plan this trip</span>
                 </Button>

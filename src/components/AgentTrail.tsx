@@ -1,14 +1,11 @@
 import { AlertCircle, Check, ChevronRight } from 'lucide-react'
 
-import { agentDisplayName, formatDuration, isFailedAgent } from '@/lib/agents'
+import { FAILED_SUFFIX, agentDisplayName, formatDuration, isFailedAgent } from '@/lib/agents'
 import { cn } from '@/lib/utils'
 import type { PipelineStep } from '@/hooks/usePlanStream'
 
 /**
- * "The answer should show which agent or agents contributed."
- *
- * Rendered as the chain in the order it ran, so the orchestration is legible
- * rather than a bag of badges. A partially-failed run still returns HTTP 200,
+ * The agent chain in the order it ran. A partially-failed run still returns HTTP 200,
  * so a failed agent has to stay visible here.
  */
 export function AgentTrail({
@@ -23,7 +20,7 @@ export function AgentTrail({
   if (agents.length === 0) return null
 
   const durationFor = (agent: string) =>
-    steps.find((step) => step.agent === agent.replace(' (failed)', ''))?.durationMs ?? null
+    steps.find((step) => step.agent === agent.replace(FAILED_SUFFIX, ''))?.durationMs ?? null
 
   return (
     <div className="space-y-2 rounded-lg border bg-card p-3">

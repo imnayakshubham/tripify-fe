@@ -1,8 +1,6 @@
 /**
- * The REST half of the API client.
- *
- * Streaming lives in lib/stream.ts: axios is XHR-based in the browser, so it
- * cannot read a response incrementally.
+ * The REST half of the API client. Streaming lives in lib/stream.ts — axios is
+ * XHR-based in the browser and cannot read a response incrementally.
  */
 
 import axios, { AxiosError } from 'axios'
@@ -34,6 +32,26 @@ export class ApiError extends Error {
   }
 }
 
+export const UNREACHABLE = `Could not reach the API at ${API_BASE_URL}. Is the backend running?`
+
+/**
+ * FastAPI has two error bodies: `{detail: string}` from HTTPException and
+ * `{detail: [{loc, msg, type}]}` from a 422. Flatten both. Shared with lib/stream.ts
+ * so the REST and SSE clients cannot report the same failure differently.
+ */
+export function detailMessage(body: unknown, status: number): string {
+  const detail = (body as { detail?: unknown } | undefined)?.detail
+
+  if (typeof detail === 'string') return detail
+
+  if (Array.isArray(detail)) {
+    const messages = detail.map((item) => (item as { msg?: string }).msg).filter(Boolean)
+    if (messages.length > 0) return messages.join('; ')
+  }
+
+  return `The API returned ${status}.`
+}
+
 const client = axios.create({ baseURL: API_BASE_URL })
 
 client.interceptors.request.use((config) => {
@@ -41,34 +59,11 @@ client.interceptors.request.use((config) => {
   return config
 })
 
-/**
- * FastAPI has two error bodies: `{detail: string}` from HTTPException and
- * `{detail: [{loc, msg, type}]}` from a 422. Flatten both.
- */
 function describe(error: AxiosError): ApiError {
-  if (!error.response) {
-    return new ApiError(
-      `Could not reach the API at ${API_BASE_URL}. Is the backend running?`,
-    )
-  }
+  if (!error.response) return new ApiError(UNREACHABLE)
 
   const { status, data } = error.response
-  const detail = (data as { detail?: unknown } | undefined)?.detail
-
-  if (typeof detail === 'string') {
-    return new ApiError(detail, status)
-  }
-
-  if (Array.isArray(detail)) {
-    const messages = detail
-      .map((item) => (item as { msg?: string }).msg)
-      .filter(Boolean)
-    if (messages.length > 0) {
-      return new ApiError(messages.join('; '), status)
-    }
-  }
-
-  return new ApiError(`The API returned ${status}.`, status)
+  return new ApiError(detailMessage(data, status), status)
 }
 
 client.interceptors.response.use(

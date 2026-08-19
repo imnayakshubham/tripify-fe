@@ -7,6 +7,8 @@
 
 export interface CreatePlanRequest {
   user_query: string
+  /** Continue this plan instead of starting a new one. Also its LangGraph thread id. */
+  plan_id?: string
 }
 
 export interface AgentContribution {
@@ -18,11 +20,9 @@ export interface AgentContribution {
 
 // ------------------------------------------------- structured agent output
 //
-// The server sends these as loose dicts because they are unvalidated model
-// output — it refuses to let a model quirk 500 an otherwise good run. The shape
-// is enforced here instead, where being wrong is a compile error rather than a
-// failed request. Treat every field as optional and never assume a number is a
-// number: a cost may arrive as 1200 or as "£1,200".
+// The server sends these as loose dicts (unvalidated model output), so the shape is
+// enforced here instead. Treat every field as optional and never assume a number is
+// a number: a cost may arrive as 1200 or as "£1,200".
 
 export type ActivityCategory =
   | 'transport'
@@ -32,14 +32,12 @@ export type ActivityCategory =
   | 'activity'
   | 'other'
 
-export type PartOfDay = 'morning' | 'afternoon' | 'evening'
-
 export interface ItinerarySegment {
-  part_of_day?: PartOfDay | string
+  part_of_day?: string
   activity?: string
-  category?: ActivityCategory | string
+  category?: string
   duration?: string
-  /** The brief's "say so when uncertain" rule, as a field. Empty when confident. */
+  /** Empty when the model is confident about the timing. */
   uncertainty?: string
 }
 
@@ -98,9 +96,8 @@ export interface BudgetAssessment {
   /** The user's stated budget, resolved server-side — not the model's echo. */
   budget_amount?: number | string
   /**
-   * Recomputed server-side. Tri-state: true = verified within, false = verified
-   * over, null/absent = could not be verified. Never read a missing value as
-   * "fine" — that is what let overages through.
+   * Recomputed server-side. true = within, false = over, null/absent = could not be
+   * verified. Never read a missing value as "fine".
    */
   within_budget?: boolean | null
   /** Why the check could not be performed, when within_budget is null. */
@@ -142,8 +139,8 @@ export interface PlanResponse {
   destination_choice: DestinationChoice | null
   itinerary_plan: ItineraryPlan | null
   budget_assessment: BudgetAssessment | null
-  // Admin-only. The API returns null for ordinary users, which is exactly how
-  // the UI decides whether to render the cost block.
+  // Admin-only. null for ordinary users, which is how the UI decides to hide the
+  // cost block.
   llm_calls: number | null
   input_tokens: number | null
   output_tokens: number | null
@@ -163,8 +160,6 @@ export interface AuditRequestSummary {
   duration_ms: number | null
   created_at: string
 }
-
-// GET /plans/{id}/result, which returns a PlanResponse.
 
 export interface InvocationLogEntry {
   request_id: string

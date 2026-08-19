@@ -5,12 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { PlanResponse } from '@/types/api'
 
 /**
- * Why this destination — including the ones that were ruled out.
- *
- * The rejected list is the visible evidence for the brief's hardest rule:
- * destination.py filters out any candidate the model flagged as breaking a hard
- * constraint *before* choosing, and records why. Showing it is the difference
- * between claiming the rule is enforced and demonstrating it.
+ * Why this destination, and which were ruled out. The rejected list is where
+ * destination.py's in-code hard-constraint filtering becomes visible.
  */
 export function DestinationPanel({ plan }: { plan: PlanResponse }) {
   const choice = plan.destination_choice
