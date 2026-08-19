@@ -112,13 +112,13 @@ function hasTripContent(plan: PlanResponse): boolean {
 
   return Boolean(
     plan.destination_choice ||
-      plan.itinerary_plan ||
-      plan.budget_assessment ||
-      plan.destination_results ||
-      plan.itinerary ||
-      plan.budget_results ||
-      constraints.destination ||
-      typeof constraints.duration_days === 'number',
+    plan.itinerary_plan ||
+    plan.budget_assessment ||
+    plan.destination_results ||
+    plan.itinerary ||
+    plan.budget_results ||
+    constraints.destination ||
+    typeof constraints.duration_days === 'number',
   )
 }
 
@@ -198,7 +198,6 @@ export function PlanResult({
       )}
 
       <RawAgentOutput plan={plan} />
-      <AdminPlanDetail plan={plan} />
     </div>
   )
 }

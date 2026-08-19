@@ -115,6 +115,16 @@ export function ItineraryTimeline({ plan }: { plan: PlanResponse }) {
         <p className="text-sm leading-relaxed text-muted-foreground">{structured.summary}</p>
       )}
 
+      {structured?.truncated && (
+        <p className="flex gap-2 rounded-md bg-warning/10 px-3 py-2 text-xs text-muted-foreground">
+          <TriangleAlert className="mt-0.5 size-3.5 shrink-0 text-warning" />
+          <span>
+            The model's reply was cut off, so this plan stops after day {days.length}. Ask for
+            the remaining days to continue.
+          </span>
+        </p>
+      )}
+
       <div className="space-y-6">
         {days.map((day, index) => (
           <Day key={day.day ?? index} day={day} />

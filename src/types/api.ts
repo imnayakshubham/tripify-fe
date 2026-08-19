@@ -51,6 +51,7 @@ export interface ItineraryPlan {
   summary?: string
   days?: ItineraryDay[]
   uncertainties?: string[]
+  truncated?: boolean
 }
 
 export interface DestinationCandidate {
